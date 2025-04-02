@@ -2,7 +2,8 @@ import os
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
-from pytgcalls import GroupCallFactory
+from pytgcalls import PyTgCalls
+from pytgcalls.types import AudioPiped, AudioParameters
 from youtube_dl import YoutubeDL
 
 # Bot Configuration
@@ -27,9 +28,8 @@ user = Client(
     session_string=SESSION_NAME
 )
 
-# Initialize GroupCall
-group_call_factory = GroupCallFactory(user, GroupCallFactory.MTPROTO_CLIENT_TYPE.PYROGRAM)
-group_calls = {}
+# Initialize PyTgCalls
+call_py = PyTgCalls(user)
 
 # Music Queue
 queues = {}
@@ -102,10 +102,6 @@ async def play_command(_, message: Message):
         chat_id = message.chat.id
         status_msg = await message.reply_text("🔍 खोज रहा हूं...")
 
-        # Get or create group call
-        if chat_id not in group_calls:
-            group_calls[chat_id] = group_call_factory.get_group_call()
-
         # Download song
         try:
             with YoutubeDL(ydl_opts) as ydl:
@@ -124,10 +120,17 @@ async def play_command(_, message: Message):
             'requested_by': message.from_user.mention
         }
 
-        if not group_calls[chat_id].is_connected:
-            await group_calls[chat_id].start(chat_id)
+        if not await call_py.get_active_call(chat_id):
+            await call_py.join_group_call(
+                chat_id,
+                AudioPiped(
+                    audio_file,
+                    AudioParameters(
+                        bitrate=48000,
+                    ),
+                )
+            )
             add_to_queue(chat_id, song_info)
-            await play_song(chat_id)
             await status_msg.edit_text(
                 f"▶️ अब बज रहा है:\n"
                 f"📀 {info['title']}\n"
@@ -144,47 +147,60 @@ async def play_command(_, message: Message):
     except Exception as e:
         await message.reply_text(f"❌ एरर: {str(e)}")
 
-async def play_song(chat_id):
-    if get_queue(chat_id):
-        song = get_queue(chat_id)[0]
-        await group_calls[chat_id].start_audio(song['file'])
-
 @bot.on_message(filters.command("pause"))
 async def pause_command(_, message: Message):
-    chat_id = message.chat.id
-    if chat_id in group_calls:
-        await group_calls[chat_id].pause_stream()
+    try:
+        await call_py.pause_stream(message.chat.id)
         await message.reply_text("⏸️ गाना रोक दिया गया है")
+    except Exception as e:
+        await message.reply_text(f"❌ एरर: {str(e)}")
 
 @bot.on_message(filters.command("resume"))
 async def resume_command(_, message: Message):
-    chat_id = message.chat.id
-    if chat_id in group_calls:
-        await group_calls[chat_id].resume_stream()
+    try:
+        await call_py.resume_stream(message.chat.id)
         await message.reply_text("▶️ गाना फिर से चालू कर दिया गया है")
+    except Exception as e:
+        await message.reply_text(f"❌ एरर: {str(e)}")
 
 @bot.on_message(filters.command("stop"))
 async def stop_command(_, message: Message):
-    chat_id = message.chat.id
-    if chat_id in group_calls:
-        clear_queue(chat_id)
-        await group_calls[chat_id].stop()
+    try:
+        clear_queue(message.chat.id)
+        await call_py.leave_group_call(message.chat.id)
         await message.reply_text("⏹️ गाना बंद कर दिया गया है")
+    except Exception as e:
+        await message.reply_text(f"❌ एरर: {str(e)}")
 
 @bot.on_message(filters.command("skip"))
 async def skip_command(_, message: Message):
     chat_id = message.chat.id
-    if chat_id in group_calls:
-        if get_queue(chat_id):
+    if get_queue(chat_id):
+        try:
             remove_from_queue(chat_id)
             if get_queue(chat_id):
-                await play_song(chat_id)
-                await message.reply_text("⏭️ अगला गाना बजा रहा हूं")
+                next_song = get_queue(chat_id)[0]
+                await call_py.change_stream(
+                    chat_id,
+                    AudioPiped(
+                        next_song['file'],
+                        AudioParameters(
+                            bitrate=48000,
+                        ),
+                    )
+                )
+                await message.reply_text(
+                    f"⏭️ अब बज रहा है:\n"
+                    f"📀 {next_song['title']}\n"
+                    f"👤 रिक्वेस्ट: {next_song['requested_by']}"
+                )
             else:
-                await group_calls[chat_id].stop()
+                await call_py.leave_group_call(chat_id)
                 await message.reply_text("⏹️ कतार खत्म हो गई है")
-        else:
-            await message.reply_text("⚠️ कतार खाली है")
+        except Exception as e:
+            await message.reply_text(f"❌ एरर: {str(e)}")
+    else:
+        await message.reply_text("⚠️ कतार खाली है")
 
 @bot.on_message(filters.command("queue"))
 async def queue_command(_, message: Message):
@@ -204,6 +220,7 @@ async def main():
         os.makedirs("downloads")
     await bot.start()
     await user.start()
+    await call_py.start()
     print("✅ बॉट स्टार्ट हो गया है!")
     await idle()
 
