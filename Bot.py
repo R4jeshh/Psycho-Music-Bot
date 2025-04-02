@@ -9,10 +9,10 @@ from youtube_dl import YoutubeDL
 import os
 
 # Bot Configuration
-API_ID = "YOUR_API_ID"  # Replace with your API ID
-API_HASH = "YOUR_API_HASH"  # Replace with your API Hash
-BOT_TOKEN = "YOUR_BOT_TOKEN"  # Replace with your Bot Token
-SESSION_NAME = "YOUR_SESSION_STRING"  # Replace with your Session String (generate separately)
+API_ID = "22561859"  # Replace with your API ID
+API_HASH = "011b61e0a533ed82a5ae800268f46ecd"  # Replace with your API Hash
+BOT_TOKEN = "8054879453:AAEqPO5_aK8S3B0EVjDdK1TFj0QPxALKX6Q"  # Replace with your Bot Token
+SESSION_NAME = "BQFYREMAZkQuYW3WQNFM6wJVpQ8gqlE-lxtApE1ACplneygWCWO4cj-EqHYsSSRN4NsPWzFHO3UlqFcMbDz6tHd3SW7S2IA1Yr29tpiugkP6kePa_ONAXyYL7LwyuOO9cxHO4V0eKnlahWKOlX8MGIu3ZbngtFPKzlFFdRb72Kt4wLJx0jk9DGhZ9fXdMb38poOfeoYn9AYXNE6WSjyerC9UrGGt2NWWr2HjUJj_7WrxIhmQRr1RrTDUnZ8VYYSfqZaX_AMncrKLyXyRK0DhYcHxqUpSxkoQa1rlLYfWFZJLK35SKE6Xn2UIGI1ftPLSXZaTzEPo6Bhy5vDOwWm8VGEYS-7B-gAAAAHTgtrLAA"  # Replace with your Session String (generate separately)
 
 # Initialize clients
 bot = Client(
