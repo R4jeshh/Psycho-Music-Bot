@@ -1,4 +1,4 @@
 pyrogram==2.0.106
 tgcrypto==1.2.5
-pytgcalls==1.0.0
-youtube-dl==2021.12.17
+yt-dlp==2023.12.30
+python-dotenv==1.0.0
